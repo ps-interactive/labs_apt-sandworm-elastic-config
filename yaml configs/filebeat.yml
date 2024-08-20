@@ -13,21 +13,29 @@
 # ============================== Filebeat inputs ===============================
 
 filebeat.inputs:
-
 # Each - is an input. Most options can be set at the input level, so
 # you can use different inputs for various configurations.
-# Below are the input-specific configurations.
+# Below are the input specific configurations.
 
-# filestream is an input for collecting log messages from files.
-- type: filestream
+# Type of the files. Based on this the way the file is read is decided.
+# The different types cannot be mixed in one input
+#
+# Possible options are:
+# * filestream: Reads every line of the log file
+# * log: Reads every line of the log file (deprecated)
+# * stdin: Reads the standard in
 
-  # Unique ID among all inputs, an ID is required.
-  id: my-filestream-id
+#------------------------------ Log input --------------------------------
+- type: log
 
   # Change to true to enable this input configuration.
-  enabled: false
+  enabled: true
 
   # Paths that should be crawled and fetched. Glob based paths.
+  # To fetch all ".log" files from a specific level of subdirectories
+  # /var/log/*/*.log can be used.
+  # For each file found under this path, a harvester is started.
+  # Make sure no file is defined twice as this can lead to unexpected behaviour.
   paths:
     - /var/log/*.log
     #- c:\programdata\elasticsearch\logs\*
@@ -66,6 +74,99 @@ filebeat.config.modules:
   # Period on which files under path should be checked for changes
   #reload.period: 10s
 
+  filebeat.modules:
+
+#-------------------------------- System Module --------------------------------
+- module: system
+  # Syslog
+  syslog:
+    enabled: true
+
+    # Set custom paths for the log files. If left empty,
+    # Filebeat will choose the paths depending on your OS.
+    #var.paths:
+
+    # Input configuration (advanced). Any input configuration option
+    # can be added under this section.
+    #input:
+
+  # Authorization logs
+  #auth:
+    #enabled: true
+
+    # Set custom paths for the log files. If left empty,
+    # Filebeat will choose the paths depending on your OS.
+    #var.paths:
+
+    # Input configuration (advanced). Any input configuration option
+    # can be added under this section.
+    #input:
+
+#-------------------------------- Apache Module --------------------------------
+# - module: apache
+  # Access logs
+  # access:
+  #   enabled: true
+
+    # Set custom paths for the log files. If left empty,
+    # Filebeat will choose the paths depending on your OS.
+    #var.paths:
+
+    # Input configuration (advanced). Any input configuration option
+    # can be added under this section.
+    #input:
+
+  # Error logs
+  # error:
+  #   enabled: true
+
+    # Set custom paths for the log files. If left empty,
+    # Filebeat will choose the paths depending on your OS.
+    #var.paths:
+
+    # Input configuration (advanced). Any input configuration option
+    # can be added under this section.
+    #input:
+#------------------------------ Container input --------------------------------
+- type: container
+  enabled: true
+
+  # Paths for container logs that should be crawled and fetched.
+  paths:
+   -/var/lib/docker/containers/*/*.log
+
+  # Configure stream to filter to a specific stream: stdout, stderr or all (default)
+  stream: all
+#------------------------------ Journald input --------------------------------
+# Journald input is experimental.
+- type: journald
+  enabled: true
+  # id: service-foo
+
+  # You may wish to have separate inputs for each service. You can use
+  # include_matches.or to specify a list of filter expressions that are
+  # applied as a logical OR. You may specify filter
+  #include_matches.or:
+    #- equals:
+      #- _SYSTEMD_UNIT=foo.service
+
+  # List of syslog identifiers
+  #syslog_identifiers: ["audit"]
+
+  # Collect events from the service and messages about the service,
+  # including coredumps.
+  # units: ["docker.service"]
+
+  # The list of transports (_TRANSPORT field of journald entries)
+  #transports: ["audit"]
+
+  # Parsers are also supported, here is an example of the multiline
+  # parser.
+  #parsers:
+  #- multiline:
+    #type: count
+    #count_lines: 3
+
 # ======================= Elasticsearch template setting =======================
 
 setup.template.settings:
@@ -93,7 +194,7 @@ setup.template.settings:
 # These settings control loading the sample dashboards to the Kibana index. Loading
 # the dashboards is disabled by default and can be enabled either by setting the
 # options here or by using the `setup` command.
-#setup.dashboards.enabled: false
+setup.dashboards.enabled: true
 
 # The URL from where to download the dashboard archive. By default, this URL
 # has a value that is computed based on the Beat name and version. For released
